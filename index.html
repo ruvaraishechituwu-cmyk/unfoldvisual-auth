@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>UnfoldVisual — Secure Account</title>
+<style>
+:root{color-scheme:dark;--bg:#080b14;--panel:#111827;--line:#263247;--text:#f4f7ff;--muted:#9ba9bf;--accent:#8bdcff}
+*{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;padding:24px;background:radial-gradient(circle at 50% 0,#15243c 0,transparent 48%),var(--bg);font:16px/1.5 system-ui,sans-serif;color:var(--text)}
+main{width:min(100%,480px);padding:32px;border:1px solid var(--line);border-radius:24px;background:rgba(17,24,39,.94);box-shadow:0 24px 80px #0008}.brand{font-size:13px;letter-spacing:.22em;color:var(--accent);font-weight:700}h1{font-size:28px;margin:14px 0 8px}p{color:var(--muted)}label{display:block;font-size:13px;margin:16px 0 7px}input{width:100%;padding:13px;border-radius:12px;border:1px solid #34435c;background:#0b1220;color:white;font:inherit}button,.link{display:flex;justify-content:center;width:100%;margin-top:18px;padding:13px;border:0;border-radius:12px;background:var(--accent);color:#07111d;font-weight:750;text-decoration:none;cursor:pointer}button:disabled{opacity:.55}#status{min-height:24px;margin-top:16px;font-size:14px;color:#cbd7e8;white-space:pre-wrap}.small{font-size:12px;color:#8291a8;margin-top:22px}[hidden]{display:none!important}
+</style></head><body><main>
+<div class="brand">UNFOLDVISUAL</div>
+<section id="loading"><h1>Securing your account</h1><p>Please wait while we verify your secure link.</p></section>
+<section id="confirm" hidden><h1>Email confirmed</h1><p>Your account is verified. Return to UnfoldVisual and sign in.</p><a class="link appLink" href="https://59d18dfce84c68fffb.gradio.live">Continue to UnfoldVisual</a></section>
+<section id="reset" hidden><h1>Choose a new password</h1><p>Use at least 8 characters.</p><form id="resetForm"><label for="password">New password</label><input id="password" type="password" minlength="8" autocomplete="new-password" required><label for="confirmPassword">Confirm new password</label><input id="confirmPassword" type="password" minlength="8" autocomplete="new-password" required><button id="saveButton">Save new password</button></form></section>
+<section id="done" hidden><h1>Password updated</h1><p>Your password has been changed. Return to UnfoldVisual and sign in with your new password.</p><a class="link appLink" href="https://59d18dfce84c68fffb.gradio.live">Return to UnfoldVisual</a></section>
+<section id="error" hidden><h1>Link unavailable</h1><p id="errorText">This link may have expired or already been used.</p><a class="link appLink" href="https://59d18dfce84c68fffb.gradio.live">Return to UnfoldVisual</a></section>
+<div id="status" role="status" aria-live="polite"></div><div class="small">Secure account services powered by Supabase.</div>
+</main>
+<script type="module">
+import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+// Replace these with the MAIN UnfoldVisual Supabase project URL and PUBLIC anon/publishable key.
+const SUPABASE_URL = "https://YOUR_PROJECT_REF.supabase.co";
+const SUPABASE_ANON_KEY = "YOUR_SUPABASE_PUBLISHABLE_OR_ANON_KEY";
+const statusEl=document.getElementById("status");
+function show(id){for(const s of ["loading","confirm","reset","done","error"])document.getElementById(s).hidden=s!==id}
+function fail(msg){show("error");document.getElementById("errorText").textContent=msg;statusEl.textContent=""}
+if(SUPABASE_URL.includes("YOUR_PROJECT_REF")||SUPABASE_ANON_KEY.includes("YOUR_"))fail("Configure your Supabase project URL and public anon/publishable key in index.html first.");
+else{
+ const supabase=createClient(SUPABASE_URL,SUPABASE_ANON_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+ try{
+  const u=new URL(location.href), hash=new URLSearchParams(u.hash.slice(1));
+  const recovery=u.searchParams.get("type")==="recovery"||hash.get("type")==="recovery";
+  const code=u.searchParams.get("code");
+  if(code){const {error}=await supabase.auth.exchangeCodeForSession(code);if(error)throw error}
+  let {data:{session}}=await supabase.auth.getSession();
+  const tokenHash=u.searchParams.get("token_hash"),tokenType=u.searchParams.get("type");
+  if(!session&&tokenHash&&tokenType){const {data,error}=await supabase.auth.verifyOtp({token_hash:tokenHash,type:tokenType});if(error)throw error;session=data.session}
+  if(!session)throw new Error("This link is invalid, expired, or already used. Request a fresh email and open the newest link.");
+  if(recovery)show("reset");else{show("confirm");statusEl.textContent="Email verification successful."}
+  document.getElementById("resetForm").addEventListener("submit",async e=>{
+   e.preventDefault();const p=document.getElementById("password").value,c=document.getElementById("confirmPassword").value,b=document.getElementById("saveButton");
+   if(p.length<8){statusEl.textContent="Use at least 8 characters.";return}if(p!==c){statusEl.textContent="The passwords do not match.";return}
+   b.disabled=true;statusEl.textContent="Updating your password…";const {error}=await supabase.auth.updateUser({password:p});b.disabled=false;
+   if(error){statusEl.textContent=error.message;return}await supabase.auth.signOut();show("done");statusEl.textContent="Password changed successfully.";
+  });
+ }catch(e){fail(e?.message||"This link could not be verified. Request a new email and try again.")}
+}
+</script></body></html>
