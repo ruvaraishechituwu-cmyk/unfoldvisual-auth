@@ -16,8 +16,8 @@ main{width:min(100%,480px);padding:32px;border:1px solid var(--line);border-radi
 <script type="module">
 import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
 // Replace these with the MAIN UnfoldVisual Supabase project URL and PUBLIC anon/publishable key.
-const SUPABASE_URL = "https://YOUR_PROJECT_REF.supabase.co";
-const SUPABASE_ANON_KEY = "YOUR_SUPABASE_PUBLISHABLE_OR_ANON_KEY";
+const SUPABASE_URL = "https://wnxtihbsvjorijhyowgr.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_axNa2EwE-jzME_8Bul5hqg_pQ9D7-41";
 const statusEl=document.getElementById("status");
 function show(id){for(const s of ["loading","confirm","reset","done","error"])document.getElementById(s).hidden=s!==id}
 function fail(msg){show("error");document.getElementById("errorText").textContent=msg;statusEl.textContent=""}
